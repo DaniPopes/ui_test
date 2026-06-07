@@ -1,3 +1,14 @@
+# ui_test
+
+## Commands
+
+```bash
+cargo cl                  # lint
+cargo fmt --all           # format
+cargo test -- -- --check  # test without updating expected output
+cargo test -- -- --bless  # bless outer expected output
+```
+
 ## Running the test suite
 
 The test suite is confusing because it itself runs ui-test, and then also uses ui-test to
@@ -9,3 +20,5 @@ If you only want to check that the output files match and not
 update them, use `cargo test -- -- --check`
 
 To bless the "outer" `.stderr` and `.stdout` files, use `cargo test -- -- --bless`.
+
+Only commit `.stderr`, `.stdout`, or `.fixed` changes when the output update is intentional.

@@ -121,11 +121,11 @@ fn build_dependencies_inner(
                         .as_bytes()
                         .iter()
                         .copied()
-                        .chain([b'\n'])
+                        .chain(*b"\n")
                         .chain(msg.message.rendered.unwrap_or_default().into_bytes())
                         .collect(),
                     Ok(_) => vec![],
-                    Err(_) => line.iter().copied().chain([b'\n']).collect(),
+                    Err(_) => line.iter().copied().chain(*b"\n").collect(),
                 },
             )
             .collect();
@@ -349,8 +349,8 @@ fn build_dependencies_inner(
             build_std_crates.insert("panic_abort");
 
             for (name, artifacts) in artifacts
-                .into_iter()
-                .filter_map(|(_, artifacts)| artifacts.ok())
+                .into_values()
+                .filter_map(|artifacts| artifacts.ok())
             {
                 if build_std_crates.remove(name.as_str()) {
                     dependencies.push((format!("noprelude:{name}"), artifacts));

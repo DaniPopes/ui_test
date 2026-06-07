@@ -1,42 +1,42 @@
-error: unused variable: `x`
- --> tests/actual_tests/joined_mixed.rs:4:13
-  |
-4 |     let mut x = 0u32;
-  |             ^ help: if this is intentional, prefix it with an underscore: `_x`
-  |
-note: the lint level is defined here
- --> tests/actual_tests/joined_mixed.rs:1:21
-  |
-1 | #![deny(unused_mut, unused_variables)]
-  |                     ^^^^^^^^^^^^^^^^
-
-error: unused variable: `y`
-  --> tests/actual_tests/joined_mixed.rs:10:13
-   |
-10 |     let mut y = 0u32;
-   |             ^ help: if this is intentional, prefix it with an underscore: `_y`
-
 error: variable does not need to be mutable
- --> tests/actual_tests/joined_mixed.rs:4:9
+ --> tests/actual_tests/joined_mixed.rs:5:9
   |
-4 |     let mut x = 0u32;
+5 |     let mut x = 0u32;
   |         ----^
   |         |
   |         help: remove this `mut`
   |
 note: the lint level is defined here
- --> tests/actual_tests/joined_mixed.rs:1:9
+ --> tests/actual_tests/joined_mixed.rs:2:9
   |
-1 | #![deny(unused_mut, unused_variables)]
+2 | #![deny(unused_mut, unused_variables)]
   |         ^^^^^^^^^^
 
 error: variable does not need to be mutable
-  --> tests/actual_tests/joined_mixed.rs:10:9
+  --> tests/actual_tests/joined_mixed.rs:11:9
    |
-10 |     let mut y = 0u32;
+11 |     let mut y = 0u32;
    |         ----^
    |         |
    |         help: remove this `mut`
+
+error: unused variable: `x`
+ --> tests/actual_tests/joined_mixed.rs:5:9
+  |
+5 |     let mut x = 0u32;
+  |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_x`
+  |
+note: the lint level is defined here
+ --> tests/actual_tests/joined_mixed.rs:2:21
+  |
+2 | #![deny(unused_mut, unused_variables)]
+  |                     ^^^^^^^^^^^^^^^^
+
+error: unused variable: `y`
+  --> tests/actual_tests/joined_mixed.rs:11:9
+   |
+11 |     let mut y = 0u32;
+   |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_y`
 
 error: aborting due to 4 previous errors
 

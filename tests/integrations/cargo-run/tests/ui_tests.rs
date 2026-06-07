@@ -15,6 +15,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
 
     config.program.args = vec!["run".into(), "--quiet".into()];
     config.program.input_file_flag = Some("--".into());
+    config.filter("thread '([^']+)' \\([0-9]+\\) panicked", "thread '$1' panicked");
 
     run_tests_generic(
         vec![config],

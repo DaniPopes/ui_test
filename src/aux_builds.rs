@@ -92,7 +92,7 @@ impl Build for AuxBuilder {
                 stderr: err.content.to_string().into_bytes(),
                 stdout: vec![],
             })?;
-        let comments = Comments::parse(file_contents.as_ref(), &config)
+        let comments = Comments::parse(file_contents.as_deref(), &config)
             .map_err(|errors| Errored::new(errors, "parse aux comments"))?;
         assert_eq!(
             comments.revisions, None,

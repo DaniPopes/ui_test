@@ -59,6 +59,10 @@ fn main() -> Result<()> {
     config.filter(r#"RUSTC_ICE=\\"0\\" "#, "");
     config.filter("RUSTC_BOOTSTRAP=\"1\" ", "");
     config.filter("RUSTC_ICE=\"0\" ", "");
+    config.filter(
+        "thread '([^']+)' \\([0-9]+\\) panicked",
+        "thread '$1' panicked",
+    );
     // The order of the `/deps` directory flag is flaky
     config.stdout_filter("/deps", "");
     config.stdout_filter("[0-9a-f]+\\.rmeta", "$$HASH.rmeta");
@@ -100,6 +104,7 @@ fn main() -> Result<()> {
     config.filter("program not found", "No such file or directory");
     config.filter(" \\(os error [0-9]+\\)", "");
     config.filter("note: rustc 1\\..*", "");
+    config.filter("/rustc-dev/[0-9a-f]+/", "");
     // Cross compilation paths contain an additional target directory name
     config.stderr_filter(
         "(/target/ui/tests/integrations/[^/]+).*debug/deps",

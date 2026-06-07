@@ -677,6 +677,17 @@ impl CommentParser<Comments> {
 }
 
 impl CommentParser<&mut Revisioned> {
+    fn parse_exit_status(&mut self, args: Spanned<&str>) -> Option<Spanned<i32>> {
+        let args = args.trim();
+        match args.content.parse() {
+            Ok(exit_status) => Some(Spanned::new(exit_status, args.span())),
+            Err(err) => {
+                self.error(args.span(), err.to_string());
+                None
+            }
+        }
+    }
+
     fn parse_normalize_test(
         &mut self,
         args: Spanned<&str>,
@@ -784,6 +795,15 @@ impl CommentParser<Comments> {
             "check-pass" => (this, _args, span){
                 _ = this.exit_status.set(0, span.clone());
                 this.require_annotations = Spanned::new(false, span.clone()).into();
+            }
+            "check-fail" => (this, _args, span){
+                _ = this.exit_status.set(1, span.clone());
+                this.require_annotations = Spanned::new(true, span.clone()).into();
+            }
+            "failure-status" => (this, args, _span){
+                if let Some(exit_status) = this.parse_exit_status(args) {
+                    this.exit_status = exit_status.into();
+                }
             }
             "require-annotations-for-level" => (this, args, span){
                 let args = args.trim();

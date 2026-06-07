@@ -289,6 +289,85 @@ fn parse_two_only_filters() {
 }
 
 #[test]
+fn parse_check_fail() {
+    let s = r"//@check-fail";
+    let mut config = Config::dummy();
+    config.comment_defaults.base().exit_status = Spanned::dummy(0).into();
+    config.comment_defaults.base().require_annotations = Spanned::dummy(false).into();
+    let comments = Comments::parse(
+        Spanned::new(
+            s.as_bytes(),
+            Span {
+                file: PathBuf::new(),
+                bytes: 0..s.len(),
+            },
+        ),
+        &config,
+    )
+    .unwrap();
+    let revisioned = comments.base_immut();
+    assert_eq!(revisioned.exit_status.as_ref().map(|s| s.content), Some(1));
+    assert_eq!(
+        revisioned.require_annotations.as_ref().map(|s| s.content),
+        Some(true)
+    );
+}
+
+#[test]
+fn parse_failure_status() {
+    let s = r"
+//@check-fail
+//@failure-status: 101
+";
+    let mut config = Config::dummy();
+    config.comment_defaults.base().exit_status = Spanned::dummy(0).into();
+    config.comment_defaults.base().require_annotations = Spanned::dummy(false).into();
+    let comments = Comments::parse(
+        Spanned::new(
+            s.as_bytes(),
+            Span {
+                file: PathBuf::new(),
+                bytes: 0..s.len(),
+            },
+        ),
+        &config,
+    )
+    .unwrap();
+    let revisioned = comments.base_immut();
+    assert_eq!(
+        revisioned.exit_status.as_ref().map(|s| s.content),
+        Some(101)
+    );
+    assert_eq!(
+        revisioned.require_annotations.as_ref().map(|s| s.content),
+        Some(true)
+    );
+}
+
+#[test]
+fn parse_invalid_failure_status() {
+    let s = r"//@failure-status: invalid";
+    let errors = Comments::parse(
+        Spanned::new(
+            s.as_bytes(),
+            Span {
+                file: PathBuf::new(),
+                bytes: 0..s.len(),
+            },
+        ),
+        &Config::dummy(),
+    )
+    .unwrap_err();
+    assert_eq!(errors.len(), 1);
+    match &errors[0] {
+        Error::InvalidComment { msg, span } if line!(span, s) == 1 => {
+            assert!(msg.contains("invalid digit"))
+        }
+        _ => unreachable!(),
+    }
+}
+
+#[test]
 fn parse_invalid_filter() {
     let s = r"//@only-target: hello world: somecomment";
     Comments::parse(

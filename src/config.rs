@@ -54,6 +54,9 @@ pub struct Config {
     pub run_only_ignored: bool,
     /// Filters must match exactly instead of just checking for substrings.
     pub filter_exact: bool,
+    /// Infer status 1 from error annotations and status 0 when none are present.
+    /// Explicit status annotations take precedence.
+    pub infer_exit_status_from_annotations: bool,
     /// The default settings settable via `@` comments
     pub comment_defaults: Comments,
     /// The symbol(s) that signify the start of a comment.
@@ -106,6 +109,7 @@ impl Config {
             list: Default::default(),
             run_only_ignored: Default::default(),
             filter_exact: Default::default(),
+            infer_exit_status_from_annotations: Default::default(),
             comment_defaults,
             comment_start: "//",
             custom_comments: Default::default(),
@@ -187,6 +191,7 @@ impl Config {
             list: false,
             run_only_ignored: false,
             filter_exact: false,
+            infer_exit_status_from_annotations: false,
             comment_defaults,
             comment_start: "//",
             custom_comments: Default::default(),

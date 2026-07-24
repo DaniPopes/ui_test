@@ -66,7 +66,15 @@ impl TestConfig {
 
     /// The test's expected exit status after applying all comments
     pub fn exit_status(&self) -> Result<Option<Spanned<i32>>, Errored> {
-        self.comments.exit_status(self.status.revision())
+        let status = self.comments.exit_status(self.status.revision())?;
+        if status.is_some() || !self.config.infer_exit_status_from_annotations {
+            return Ok(status);
+        }
+        let span = self.expected_error_span();
+        Ok(Some(Spanned::new(
+            if span.is_some() { 1 } else { 0 },
+            span.unwrap_or_default(),
+        )))
     }
 
     /// Whether compiler messages require annotations
@@ -90,7 +98,8 @@ impl TestConfig {
                             {
                                 Some(pattern.span())
                             }
-                            ErrorMatchKind::Code(_) | ErrorMatchKind::Pattern { .. } => None,
+                            ErrorMatchKind::Code(code) => Some(code.span()),
+                            ErrorMatchKind::Pattern { .. } => None,
                         })
                 })
         })

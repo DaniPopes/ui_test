@@ -236,7 +236,7 @@ fn only_error_levels_require_failure() {
         let s = "fn main() {} //~ custom_lint";
         let config = config();
         config!(config = s);
-        assert!(config.expected_error_span().is_none());
+        assert!(config.expected_error_span().is_some());
     }
 
     {
@@ -244,6 +244,57 @@ fn only_error_levels_require_failure() {
         let config = config();
         config!(config = s);
         assert!(config.expected_error_span().is_some());
+    }
+}
+
+#[test]
+fn infer_exit_status_from_annotations() {
+    {
+        let s = "fn main() {}";
+        let mut config = config();
+        config.comment_defaults.base().exit_status = None.into();
+        config.infer_exit_status_from_annotations = true;
+        config!(config = s);
+        assert_eq!(*config.exit_status().unwrap().unwrap(), 0);
+    }
+
+    {
+        let s = "fn main() {} //~ ERROR: compilation failed";
+        let mut config = config();
+        config.comment_defaults.base().exit_status = None.into();
+        config.infer_exit_status_from_annotations = true;
+        config!(config = s);
+        assert_eq!(*config.exit_status().unwrap().unwrap(), 1);
+    }
+
+    {
+        let s = "fn main() {} //~ WARN: lint message";
+        let mut config = config();
+        config.comment_defaults.base().exit_status = None.into();
+        config.infer_exit_status_from_annotations = true;
+        config!(config = s);
+        assert_eq!(*config.exit_status().unwrap().unwrap(), 0);
+    }
+
+    {
+        let s = "fn main() {} //~ E0308";
+        let mut config = config();
+        config.comment_defaults.base().exit_status = None.into();
+        config.infer_exit_status_from_annotations = true;
+        config!(config = s);
+        assert_eq!(*config.exit_status().unwrap().unwrap(), 1);
+    }
+
+    {
+        let s = r"
+//@ failure-status: 3
+fn main() {} //~ ERROR: compilation failed
+";
+        let mut config = config();
+        config.comment_defaults.base().exit_status = None.into();
+        config.infer_exit_status_from_annotations = true;
+        config!(config = s);
+        assert_eq!(*config.exit_status().unwrap().unwrap(), 3);
     }
 }
 

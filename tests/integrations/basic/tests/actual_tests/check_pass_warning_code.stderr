@@ -1,0 +1,10 @@
+warning: unused variable: `value`
+ --> tests/actual_tests/check_pass_warning_code.rs:4:9
+  |
+4 |     let value = 1;
+  |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_value`
+  |
+  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: 1 warning emitted
+

@@ -90,6 +90,32 @@ fn main() {
 }
 
 #[test]
+fn parse_unknown_line_comment() {
+    let s = r"
+fn main() {}
+//~? ERROR: error without a source location
+";
+    let comments = Comments::parse(
+        Spanned::new(
+            s.as_bytes(),
+            Span {
+                file: PathBuf::new(),
+                bytes: 0..s.len(),
+            },
+        ),
+        &Config::dummy(),
+    )
+    .unwrap();
+    let revisioned = comments.base_immut();
+    let error_match = &revisioned.error_matches[0];
+    assert_eq!(error_match.line, None);
+    let ErrorMatchKind::Pattern { pattern, .. } = &error_match.kind else {
+        panic!("expected pattern matcher");
+    };
+    assert_eq!(line!(&pattern.span, s), 3);
+}
+
+#[test]
 fn parse_missing_level() {
     let s = r"
 use std::mem;
@@ -307,6 +333,31 @@ fn parse_check_fail() {
     .unwrap();
     let revisioned = comments.base_immut();
     assert_eq!(revisioned.exit_status.as_ref().map(|s| s.content), Some(1));
+    assert_eq!(
+        revisioned.require_annotations.as_ref().map(|s| s.content),
+        Some(true)
+    );
+}
+
+#[test]
+fn parse_check_pass_preserves_annotation_checking() {
+    let s = r"//@check-pass";
+    let mut config = Config::dummy();
+    config.comment_defaults.base().exit_status = Spanned::dummy(1).into();
+    config.comment_defaults.base().require_annotations = Spanned::dummy(true).into();
+    let comments = Comments::parse(
+        Spanned::new(
+            s.as_bytes(),
+            Span {
+                file: PathBuf::new(),
+                bytes: 0..s.len(),
+            },
+        ),
+        &config,
+    )
+    .unwrap();
+    let revisioned = comments.base_immut();
+    assert_eq!(revisioned.exit_status.as_ref().map(|s| s.content), Some(0));
     assert_eq!(
         revisioned.require_annotations.as_ref().map(|s| s.content),
         Some(true)

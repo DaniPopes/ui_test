@@ -29,6 +29,13 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
             );
             err.write_str(reason).unwrap();
         }
+        Error::SuccessfulExitWithErrorPattern { span } => {
+            github_actions::error(
+                test_path,
+                format!("test{revision} exited successfully despite an expected error"),
+            )
+            .line(line(span));
+        }
         Error::Command { kind, status } => {
             github_actions::error(test_path, format!("{kind}{revision} failed with {status}"));
         }

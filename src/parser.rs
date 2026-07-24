@@ -291,8 +291,9 @@ pub(crate) enum ErrorMatchKind {
 #[derive(Debug, Clone)]
 pub(crate) struct ErrorMatch {
     pub(crate) kind: ErrorMatchKind,
-    /// The line this pattern is expecting to find a message in.
-    pub(crate) line: NonZeroUsize,
+    /// The line this pattern is expecting to find a message in, or `None` for any diagnostic
+    /// without a location in the test file.
+    pub(crate) line: Option<NonZeroUsize>,
 }
 
 impl Condition {
@@ -382,12 +383,12 @@ impl CommentParser<Comments> {
                     }
 
                     for (span, line, idx) in delayed_fallthrough.drain(..) {
-                        if let Some(rev) =
-                            self.comments.revisioned.values_mut().find(|rev| {
-                                rev.error_matches.get(idx).is_some_and(|m| m.line == line)
-                            })
-                        {
-                            rev.error_matches[idx].line = match_line;
+                        if let Some(rev) = self.comments.revisioned.values_mut().find(|rev| {
+                            rev.error_matches
+                                .get(idx)
+                                .is_some_and(|m| m.line == Some(line))
+                        }) {
+                            rev.error_matches[idx].line = Some(match_line);
                         } else {
                             self.error(span, "`//~|` comment not attached to anchoring matcher");
                         }
@@ -420,15 +421,16 @@ impl CommentParser<Comments> {
 
         for revisioned in self.comments.revisioned.values() {
             for m in &revisioned.error_matches {
-                if m.line.get() > last_line {
+                if m.line.is_some_and(|line| line.get() > last_line) {
                     let span = match &m.kind {
                         ErrorMatchKind::Pattern { pattern, .. } => pattern.span(),
                         ErrorMatchKind::Code(code) => code.span(),
                     };
+                    let line = m.line.unwrap();
                     self.errors.push(Error::InvalidComment {
                         msg: format!(
                             "//~v pattern is trying to refer to line {}, but the file only has {} lines",
-                            m.line.get(),
+                            line.get(),
                             last_line,
                         ),
                         span,
@@ -794,7 +796,6 @@ impl CommentParser<Comments> {
             }
             "check-pass" => (this, _args, span){
                 _ = this.exit_status.set(0, span.clone());
-                this.require_annotations = Spanned::new(false, span.clone()).into();
             }
             "check-fail" => (this, _args, span){
                 _ = this.exit_status.set(1, span.clone());
@@ -950,7 +951,7 @@ impl<CommentsType> CommentParser<CommentsType> {
 impl CommentParser<&mut Revisioned> {
     // parse something like:
     // (\[[a-z]+(,[a-z]+)*\])?
-    // (?P<offset>\||[\^]+)? *
+    // (?P<offset>\?|\||[\^]+)? *
     // ((?P<level>ERROR|HELP|WARN|NOTE): (?P<text>.*))|(?P<code>[a-z0-9_:]+)
     fn parse_pattern(
         &mut self,
@@ -962,18 +963,22 @@ impl CommentParser<&mut Revisioned> {
         let mut res = ParsePatternResult::Other;
 
         let (match_line, pattern) = match c {
+            Some(Spanned {
+                content: '?',
+                span: _,
+            }) => (None, pattern.split_at(1).1),
             Some(Spanned { content: '|', span }) => (
                 match fallthrough_to {
                     Some(match_line) => {
                         res = ParsePatternResult::ErrorAbove { match_line };
-                        match_line
+                        Some(match_line)
                     }
                     None => {
                         res = ParsePatternResult::Fallthrough {
                             span,
                             idx: self.error_matches.len(),
                         };
-                        current_line
+                        Some(current_line)
                     }
                 },
                 pattern.split_at(1).1,
@@ -992,7 +997,7 @@ impl CommentParser<&mut Revisioned> {
                     // prevented via `NonZeroUsize`
                     Some(match_line) => {
                         res = ParsePatternResult::ErrorAbove { match_line };
-                        (match_line, pattern.split_at(offset).1)
+                        (Some(match_line), pattern.split_at(offset).1)
                     }
                     _ => {
                         self.error(pattern.span(), format!(
@@ -1022,7 +1027,7 @@ impl CommentParser<&mut Revisioned> {
                             span: pattern.span(),
                             match_line,
                         };
-                        (match_line, pattern.split_at(offset).1)
+                        (Some(match_line), pattern.split_at(offset).1)
                     }
                     _ => {
                         // The line count of the file is not yet known so we can only check
@@ -1039,7 +1044,7 @@ impl CommentParser<&mut Revisioned> {
                     }
                 }
             }
-            Some(_) => (current_line, pattern),
+            Some(_) => (Some(current_line), pattern),
             None => {
                 self.error(pattern.span(), "no pattern specified");
                 return res;

@@ -81,6 +81,7 @@ fn main() -> Result<()> {
         .normalize_stdout
         .insert(0, (Match::Exact(b"\\\\\\\\".to_vec()), b"\\".to_vec()));
     config.path_filter(std::path::Path::new(path), "$DIR");
+    config.filter("/proc/self/cwd", "$$DIR");
     // Unescape escaped quotes at the end of windows paths in json
     config.filter("/\"", "\\\"");
     config.stdout_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");

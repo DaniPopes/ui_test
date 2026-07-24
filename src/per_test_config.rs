@@ -13,7 +13,7 @@ use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
 use crate::status_emitter::{SilentStatus, TestStatus};
 use crate::test_result::{Errored, TestOk, TestResult};
 use crate::{core::strip_path_prefix, Config, Error, Errors};
-use spanned::Spanned;
+use spanned::{Span, Spanned};
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
@@ -72,6 +72,28 @@ impl TestConfig {
     /// Whether compiler messages require annotations
     pub fn require_annotations(&self) -> Option<Spanned<bool>> {
         self.comments.require_annotations(self.status.revision())
+    }
+
+    pub(crate) fn expected_error_span(&self) -> Option<Span> {
+        self.comments().find_map(|revision| {
+            revision
+                .error_in_other_files
+                .first()
+                .map(Spanned::span)
+                .or_else(|| {
+                    revision
+                        .error_matches
+                        .iter()
+                        .find_map(|error_match| match &error_match.kind {
+                            ErrorMatchKind::Pattern { pattern, level }
+                                if *level >= Level::Error =>
+                            {
+                                Some(pattern.span())
+                            }
+                            ErrorMatchKind::Code(_) | ErrorMatchKind::Pattern { .. } => None,
+                        })
+                })
+        })
     }
 
     pub(crate) fn find_one<'a, T: 'a>(
@@ -276,12 +298,16 @@ impl TestConfig {
                 }
             }
 
-            if let Some(msgs) = messages.get_mut(line.get()) {
+            let msgs = match line {
+                Some(line) => messages.get_mut(line.get()),
+                None => Some(&mut messages_from_unknown_file_or_line),
+            };
+            if let Some(msgs) = msgs {
                 match kind {
                     &ErrorMatchKind::Pattern { ref pattern, level } => {
-                        let found = msgs
-                            .iter()
-                            .position(|msg| pattern.matches(&msg.message) && msg.level == level);
+                        let found = msgs.iter().position(|msg| {
+                            pattern.matches(&msg.message_with_code()) && msg.level == level
+                        });
                         if let Some(found) = found {
                             msgs.remove(found);
                             continue;
@@ -308,14 +334,14 @@ impl TestConfig {
             errors.push(match kind {
                 ErrorMatchKind::Pattern { pattern, .. } => Error::PatternNotFound {
                     pattern: pattern.clone(),
-                    expected_line: Some(line),
+                    expected_line: line,
                 },
                 ErrorMatchKind::Code(code) => Error::CodeNotFound {
                     code: Spanned::new(
                         format!("{}{}", diagnostic_code_prefix, **code),
                         code.span(),
                     ),
-                    expected_line: Some(line),
+                    expected_line: line,
                 },
             });
         }
@@ -356,6 +382,7 @@ impl TestConfig {
             }
         }
 
+        let expects_failure = self.exit_status()?.is_some_and(|status| *status != 0);
         match (require_annotations, seen_error_match) {
             (
                 Some(Spanned {
@@ -364,7 +391,9 @@ impl TestConfig {
                 }),
                 Some(span),
             ) => errors.push(Error::PatternFoundInPassTest { mode, span }),
-            (Some(Spanned { content: true, .. }), None) => errors.push(Error::NoPatternsFound),
+            (Some(Spanned { content: true, .. }), None) if expects_failure => {
+                errors.push(Error::NoPatternsFound)
+            }
             _ => {}
         }
         Ok(())

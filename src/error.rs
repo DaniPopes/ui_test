@@ -17,6 +17,11 @@ pub enum Error {
         /// A reason for why the expected exit status was expected
         reason: Spanned<String>,
     },
+    /// The process succeeded despite an expected error diagnostic.
+    SuccessfulExitWithErrorPattern {
+        /// The expected error annotation.
+        span: Span,
+    },
     /// A pattern was declared but had no matching error.
     PatternNotFound {
         /// The pattern that was not found, and the span of where that pattern was declared.

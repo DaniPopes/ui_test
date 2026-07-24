@@ -642,6 +642,11 @@ fn print_error(error: &Error, path: &Path) {
                 path,
             )
         }
+        Error::SuccessfulExitWithErrorPattern { span } => create_error(
+            "test exited successfully despite an expected error",
+            &[&[("expected because of this annotation", span.clone())]],
+            path,
+        ),
         Error::Command { kind, status } => {
             // `status` prints as `exit status: N`.
             print_error_header(format_args!("{kind} failed with {status}"));

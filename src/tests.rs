@@ -174,6 +174,80 @@ fn main() {
 }
 
 #[test]
+fn find_unknown_line_pattern() {
+    let s = r"
+fn main() {}
+//~? ERROR: error without a source location
+";
+    let config = config();
+    config!(config = s);
+    let messages = vec![Message {
+        message: "error without a source location".to_string(),
+        level: Level::Error,
+        line: None,
+        span: None,
+        code: None,
+    }];
+    let mut errors = vec![];
+    config
+        .check_annotations(vec![], messages, &mut errors)
+        .unwrap();
+    assert!(errors.is_empty(), "{errors:#?}");
+}
+
+#[test]
+fn find_level_message_and_code() {
+    let s = r"
+fn main() {
+    let value = 1; //~ WARN: custom_lint
+}
+";
+    let config = config();
+    config!(config = s);
+    let messages = vec![
+        vec![],
+        vec![],
+        vec![],
+        vec![Message {
+            message: "lint message".to_string(),
+            level: Level::Warn,
+            line: None,
+            span: None,
+            code: Some("custom_lint".into()),
+        }],
+    ];
+    let mut errors = vec![];
+    config
+        .check_annotations(messages, vec![], &mut errors)
+        .unwrap();
+    assert!(errors.is_empty(), "{errors:#?}");
+}
+
+#[test]
+fn only_error_levels_require_failure() {
+    {
+        let s = "fn main() {} //~ WARN: lint message [custom_lint]";
+        let config = config();
+        config!(config = s);
+        assert!(config.expected_error_span().is_none());
+    }
+
+    {
+        let s = "fn main() {} //~ custom_lint";
+        let config = config();
+        config!(config = s);
+        assert!(config.expected_error_span().is_none());
+    }
+
+    {
+        let s = "fn main() {} //~ ERROR: compilation failed";
+        let config = config();
+        config!(config = s);
+        assert!(config.expected_error_span().is_some());
+    }
+}
+
+#[test]
 fn duplicate_pattern() {
     let s = r"
 use std::mem;

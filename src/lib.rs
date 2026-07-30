@@ -147,7 +147,7 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     config.fill_host_and_target()?;
 
     let content = Spanned::read_from_file(path).transpose()?;
-    let comments = Comments::parse(content.as_ref(), &config)
+    let comments = Comments::parse(content.as_deref(), &config)
         .map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     let config = TestConfig {
         config,
@@ -372,7 +372,7 @@ fn parse_and_test_file(
     config: Config,
     file_contents: Spanned<Vec<u8>>,
 ) -> Result<Vec<TestRun>, (Box<dyn TestStatus>, Errored)> {
-    let comments = match Comments::parse(file_contents.as_ref(), &config) {
+    let comments = match Comments::parse(file_contents.as_deref(), &config) {
         Ok(t) => t,
         Err(errors) => return Err((status, Errored::new(errors, "parse comments"))),
     };

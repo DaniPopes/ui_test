@@ -6,6 +6,13 @@ use std::process::ExitStatus;
 impl TestConfig {
     #[allow(clippy::result_large_err)]
     pub(crate) fn ok(&self, status: ExitStatus) -> Result<Option<Error>, Errored> {
+        if let Some(span) = status
+            .success()
+            .then(|| self.expected_error_span())
+            .flatten()
+        {
+            return Ok(Some(Error::SuccessfulExitWithErrorPattern { span }));
+        }
         let Some(expected) = self.exit_status()? else {
             return Ok(None);
         };

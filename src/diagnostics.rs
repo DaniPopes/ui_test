@@ -1,6 +1,6 @@
 //! Data structures for handling diagnostic output from tests.
 
-use std::path::Path;
+use std::{borrow::Cow, path::Path};
 
 #[cfg(feature = "rustc")]
 pub mod rustc;
@@ -55,6 +55,15 @@ pub struct Message {
     pub span: Option<spanned::Span>,
     /// Identifier of the message (E0XXX for rustc errors, or lint names)
     pub code: Option<String>,
+}
+
+impl Message {
+    pub(crate) fn message_with_code(&self) -> Cow<'_, str> {
+        match &self.code {
+            Some(code) => format!("{} [{code}]", self.message).into(),
+            None => (&self.message).into(),
+        }
+    }
 }
 
 /// All the diagnostics that were emitted in a test.

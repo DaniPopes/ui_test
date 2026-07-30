@@ -57,6 +57,21 @@ macro_rules! line {
 }
 
 #[test]
+fn bless_removes_normalized_empty_output() {
+    let mut config = config();
+    config.stdout_filter(".+", "");
+    config!(config = "");
+
+    let path = std::env::temp_dir().join(format!(
+        "ui_test_normalized_empty_{}.stdout",
+        std::process::id()
+    ));
+    std::fs::write(&path, "stale").unwrap();
+    bless_output_files(&path, b"output", &mut vec![], &config);
+    assert!(!path.exists());
+}
+
+#[test]
 fn issue_2156() {
     let s = r"
 use std::mem;
@@ -170,6 +185,131 @@ fn main() {
             [Error::PatternNotFound { pattern, .. }] if line!(pattern.span, s) == 5 => {}
             _ => panic!("not the expected error: {:#?}", errors),
         }
+    }
+}
+
+#[test]
+fn find_unknown_line_pattern() {
+    let s = r"
+fn main() {}
+//~? ERROR: error without a source location
+";
+    let config = config();
+    config!(config = s);
+    let messages = vec![Message {
+        message: "error without a source location".to_string(),
+        level: Level::Error,
+        line: None,
+        span: None,
+        code: None,
+    }];
+    let mut errors = vec![];
+    config
+        .check_annotations(vec![], messages, &mut errors)
+        .unwrap();
+    assert!(errors.is_empty(), "{errors:#?}");
+}
+
+#[test]
+fn find_level_message_and_code() {
+    let s = r"
+fn main() {
+    let value = 1; //~ WARN: custom_lint
+}
+";
+    let config = config();
+    config!(config = s);
+    let messages = vec![
+        vec![],
+        vec![],
+        vec![],
+        vec![Message {
+            message: "lint message".to_string(),
+            level: Level::Warn,
+            line: None,
+            span: None,
+            code: Some("custom_lint".into()),
+        }],
+    ];
+    let mut errors = vec![];
+    config
+        .check_annotations(messages, vec![], &mut errors)
+        .unwrap();
+    assert!(errors.is_empty(), "{errors:#?}");
+}
+
+#[test]
+fn only_error_levels_require_failure() {
+    {
+        let s = "fn main() {} //~ WARN: lint message [custom_lint]";
+        let config = config();
+        config!(config = s);
+        assert!(config.expected_error_span().is_none());
+    }
+
+    {
+        let s = "fn main() {} //~ custom_lint";
+        let config = config();
+        config!(config = s);
+        assert!(config.expected_error_span().is_some());
+    }
+
+    {
+        let s = "fn main() {} //~ ERROR: compilation failed";
+        let config = config();
+        config!(config = s);
+        assert!(config.expected_error_span().is_some());
+    }
+}
+
+#[test]
+fn infer_exit_status_from_annotations() {
+    {
+        let s = "fn main() {}";
+        let mut config = config();
+        config.comment_defaults.base().exit_status = None.into();
+        config.infer_exit_status_from_annotations = true;
+        config!(config = s);
+        assert_eq!(*config.exit_status().unwrap().unwrap(), 0);
+    }
+
+    {
+        let s = "fn main() {} //~ ERROR: compilation failed";
+        let mut config = config();
+        config.comment_defaults.base().exit_status = None.into();
+        config.infer_exit_status_from_annotations = true;
+        config!(config = s);
+        assert_eq!(*config.exit_status().unwrap().unwrap(), 1);
+    }
+
+    {
+        let s = "fn main() {} //~ WARN: lint message";
+        let mut config = config();
+        config.comment_defaults.base().exit_status = None.into();
+        config.infer_exit_status_from_annotations = true;
+        config!(config = s);
+        assert_eq!(*config.exit_status().unwrap().unwrap(), 0);
+    }
+
+    {
+        let s = "fn main() {} //~ E0308";
+        let mut config = config();
+        config.comment_defaults.base().exit_status = None.into();
+        config.infer_exit_status_from_annotations = true;
+        config!(config = s);
+        assert_eq!(*config.exit_status().unwrap().unwrap(), 1);
+    }
+
+    {
+        let s = r"
+//@ failure-status: 3
+fn main() {} //~ ERROR: compilation failed
+";
+        let mut config = config();
+        config.comment_defaults.base().exit_status = None.into();
+        config.infer_exit_status_from_annotations = true;
+        config!(config = s);
+        assert_eq!(*config.exit_status().unwrap().unwrap(), 3);
     }
 }
 

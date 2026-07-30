@@ -1,3 +1,4 @@
+//@no-rustfix
 #![deny(unused_mut, unused_variables)]
 
 fn main() {

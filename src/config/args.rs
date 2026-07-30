@@ -81,7 +81,9 @@ impl Args {
                     "json" => Format::JSON,
                     "pretty" => Format::Pretty,
                     "terse" => Format::Terse,
-                    _ => bail!("unsupported format `{format}`"),
+                    _ => {
+                        bail!("unsupported format `{format}`");
+                    }
                 };
             } else if let Some(skip) = parse_value("--skip", &arg, &mut iter)? {
                 self.skip.push(skip.into_owned());
@@ -99,7 +101,7 @@ available flags:
 --skip=<TEST_NAME>
 --format=[json,pretty,terse]
 --test-threads=<NUM_THREADS>"
-                )
+                );
             } else if let Some(n) = parse_value("--test-threads", &arg, &mut iter)? {
                 self.threads = Some(n.parse()?);
             } else if arg.starts_with("--") {
@@ -144,7 +146,7 @@ fn parse_value<'a>(
         if let Some(next) = iter.next() {
             Ok(Some(next.into()))
         } else {
-            bail!("`{name}` must be followed by a value")
+            bail!("`{name}` must be followed by a value");
         }
     }
 }

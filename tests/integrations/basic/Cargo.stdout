@@ -7,6 +7,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 { "type": "test", "event": "started", "name": "tests/actual_tests/aux_attr_proc_macro.rs () - tests/actual_tests/aux_attr_proc_macro.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/aux_derive.rs () - tests/actual_tests/aux_derive.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/aux_proc_macro.rs () - tests/actual_tests/aux_proc_macro.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/check_pass_warning_code.rs () - tests/actual_tests/check_pass_warning_code.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/dep_derive.rs () - tests/actual_tests/dep_derive.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/error_above.rs () - tests/actual_tests/error_above.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/error_below_multi_rev.rs () - tests/actual_tests/error_below_multi_rev.rs" }
@@ -31,6 +32,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 { "type": "test", "event": "ok", "name": "tests/actual_tests/aux_derive.rs () - tests/actual_tests/aux_derive.fixed" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/aux_proc_macro.rs (Building aux file tests/actual_tests/auxiliary/the_proc_macro.rs) - tests/actual_tests/aux_proc_macro.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/aux_proc_macro.rs () - tests/actual_tests/aux_proc_macro.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/check_pass_warning_code.rs () - tests/actual_tests/check_pass_warning_code.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/dep_derive.rs () - tests/actual_tests/dep_derive.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/dep_derive.rs (run) - tests/actual_tests/dep_derive.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/error_above.rs () - tests/actual_tests/error_above.rs" }
@@ -43,13 +45,9 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 { "type": "test", "event": "ok", "name": "tests/actual_tests/foomp-rustfix.rs () - tests/actual_tests/foomp-rustfix.fixed" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/foomp.rs () - tests/actual_tests/foomp.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/joined_above.rs () - tests/actual_tests/joined_above.rs" }
-{ "type": "test", "event": "ok", "name": "tests/actual_tests/joined_above.rs () - tests/actual_tests/joined_above.fixed" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/joined_below.rs () - tests/actual_tests/joined_below.rs" }
-{ "type": "test", "event": "ok", "name": "tests/actual_tests/joined_below.rs () - tests/actual_tests/joined_below.fixed" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/joined_mixed.rs () - tests/actual_tests/joined_mixed.rs" }
-{ "type": "test", "event": "ok", "name": "tests/actual_tests/joined_mixed.rs () - tests/actual_tests/joined_mixed.fixed" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/mac_span.rs () - tests/actual_tests/mac_span.rs" }
-{ "type": "test", "event": "ok", "name": "tests/actual_tests/mac_span.rs () - tests/actual_tests/mac_span.fixed" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/match_diagnostic_code.rs () - tests/actual_tests/match_diagnostic_code.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/match_diagnostic_code.rs () - tests/actual_tests/match_diagnostic_code.fixed" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/no_rustfix.rs () - tests/actual_tests/no_rustfix.rs" }
@@ -61,7 +59,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 { "type": "test", "event": "ok", "name": "tests/actual_tests/unicode.rs () - tests/actual_tests/unicode.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/windows_paths.rs () - tests/actual_tests/windows_paths.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/subdir/aux_proc_macro.rs () - tests/actual_tests/subdir/aux_proc_macro.rs" }
-{ "type": "suite", "event": "ok", "passed": 33, "failed": 0, "ignored": 0, "measured": 0, "filtered_out": 0 }
+{ "type": "suite", "event": "ok", "passed": 30, "failed": 0, "ignored": 0, "measured": 0, "filtered_out": 0 }
 
 running 3 tests
 ...
@@ -74,6 +72,7 @@ tests/actual_tests/aux_derive.rs ... ok
 tests/actual_tests/aux_derive.fixed ... ok
 Building aux file tests/actual_tests/auxiliary/the_proc_macro.rs ... ok
 tests/actual_tests/aux_proc_macro.rs ... ok
+tests/actual_tests/check_pass_warning_code.rs ... ok
 tests/actual_tests/dep_derive.rs ... ok
 tests/actual_tests/dep_derive.rs (revision `run`) ... ok
 tests/actual_tests/error_above.rs ... ok
@@ -86,13 +85,9 @@ tests/actual_tests/foomp-rustfix.rs ... ok
 tests/actual_tests/foomp-rustfix.fixed ... ok
 tests/actual_tests/foomp.rs ... ok
 tests/actual_tests/joined_above.rs ... ok
-tests/actual_tests/joined_above.fixed ... ok
 tests/actual_tests/joined_below.rs ... ok
-tests/actual_tests/joined_below.fixed ... ok
 tests/actual_tests/joined_mixed.rs ... ok
-tests/actual_tests/joined_mixed.fixed ... ok
 tests/actual_tests/mac_span.rs ... ok
-tests/actual_tests/mac_span.fixed ... ok
 tests/actual_tests/match_diagnostic_code.rs ... ok
 tests/actual_tests/match_diagnostic_code.fixed ... ok
 tests/actual_tests/no_rustfix.rs ... ok
@@ -105,7 +100,7 @@ tests/actual_tests/unicode.rs ... ok
 tests/actual_tests/windows_paths.rs ... ok
 tests/actual_tests/subdir/aux_proc_macro.rs ... ok
 
-test result: ok. 33 passed
+test result: ok. 30 passed
 
 
 running 0 tests

@@ -11,6 +11,7 @@ use crate::test_result::TestOk;
 use crate::test_result::TestResult;
 use crate::Error;
 use crate::Errors;
+use annotate_snippets::AnnotationKind;
 use annotate_snippets::Renderer;
 use annotate_snippets::Snippet;
 use colored::Colorize;
@@ -641,6 +642,11 @@ fn print_error(error: &Error, path: &Path) {
                 path,
             )
         }
+        Error::SuccessfulExitWithErrorPattern { span } => create_error(
+            "test exited successfully despite an expected error",
+            &[&[("expected because of this annotation", span.clone())]],
+            path,
+        ),
         Error::Command { kind, status } => {
             // `status` prints as `exit status: N`.
             print_error_header(format_args!("{kind} failed with {status}"));
@@ -677,7 +683,7 @@ fn print_error(error: &Error, path: &Path) {
                 None => "outside the testfile".into(),
             };
             create_error(
-                format!("diagnostic code `{}` not found {line}", &**code),
+                format!("diagnostic code `{}` not found {line}", **code),
                 &[&[("expected because of this pattern", code.span())]],
                 path,
             );
@@ -846,34 +852,36 @@ fn print_error(error: &Error, path: &Path) {
 fn create_error(s: impl AsRef<str>, lines: &[&[(&str, Span)]], file: &Path) {
     let source = std::fs::read_to_string(file).unwrap();
     let file = display(file);
-    let mut msg = annotate_snippets::Level::Error.title(s.as_ref());
+    let mut msg = annotate_snippets::Group::with_title(
+        annotate_snippets::Level::ERROR.primary_title(s.as_ref()),
+    );
     for &label in lines {
         let annotations = label
             .iter()
             .filter(|(_, span)| !span.is_dummy())
             .map(|(label, span)| {
-                annotate_snippets::Level::Error
+                AnnotationKind::Primary
                     .span(span.bytes.clone())
-                    .label(label)
+                    .label(*label)
             })
             .collect::<Vec<_>>();
         if !annotations.is_empty() {
             let snippet = Snippet::source(&source)
                 .fold(true)
-                .origin(&file)
+                .path(&file)
                 .annotations(annotations);
-            msg = msg.snippet(snippet);
+            msg = msg.element(snippet);
         }
         let footer = label
             .iter()
             .filter(|(_, span)| span.is_dummy())
-            .map(|(label, _)| annotate_snippets::Level::Note.title(label));
-        msg = msg.footers(footer);
+            .map(|(label, _)| annotate_snippets::Level::NOTE.message(*label));
+        msg = msg.elements(footer);
     }
     let renderer = if colored::control::SHOULD_COLORIZE.should_colorize() {
         Renderer::styled()
     } else {
         Renderer::plain()
     };
-    println!("{}", renderer.render(msg));
+    println!("{}", renderer.render(&[msg]));
 }

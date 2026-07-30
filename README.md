@@ -49,6 +49,11 @@ causes_some_error()
 //~v some_error
 causes_some_error()
 ```
+
+Use `?` when the diagnostic has no location in the test file:
+```rs
+//~? ERROR: error without a source location
+```
 By repeating those symbols `n` times, one can annotate an error located `n` lines away:
 ```rs
 causes_some_error()
@@ -103,7 +108,9 @@ their command specifies, or the test will fail without even being run.
     * you can specify multiple such commands, there is no need to create a single regex that handles multiple replacements that you want to perform.
 * `//@require-annotations-for-level: LEVEL` can be used to change the level of diagnostics that require a corresponding annotation.
     * this is only useful if there are any annotations like `HELP`, `WARN` or `NOTE`, as these would automatically require annotations for all other diagnostics of the same or higher level.
-* `//@check-pass` requires that a test has no error annotations, emits no errors, and exits successfully with exit/status code 0.
+* `//@check-pass` requires that a test exits successfully with exit/status code 0. Warning, note, and help annotations remain valid.
+* `//@check-fail` requires that a test has annotations and exits with exit/status code 1.
+* `//@failure-status: STATUS` requires that a test exits with the given exit/status code.
 * `//@edition: EDITION` overwrites the default edition (2021) to the given edition.
 * `//@no-rustfix` do not run [rustfix] on tests that have machine applicable suggestions.
 * `//@aux-build: filename` looks for a file in the `auxiliary` directory (within the directory of the test), compiles it as a library and links the current crate against it. This allows you import the crate with `extern crate` or just via `use` statements. This will automatically detect aux files that are proc macros and build them as proc macros.

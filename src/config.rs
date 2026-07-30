@@ -54,6 +54,9 @@ pub struct Config {
     pub run_only_ignored: bool,
     /// Filters must match exactly instead of just checking for substrings.
     pub filter_exact: bool,
+    /// Infer status 1 from error annotations and status 0 when none are present.
+    /// Explicit status annotations take precedence.
+    pub infer_exit_status_from_annotations: bool,
     /// The default settings settable via `@` comments
     pub comment_defaults: Comments,
     /// The symbol(s) that signify the start of a comment.
@@ -106,6 +109,7 @@ impl Config {
             list: Default::default(),
             run_only_ignored: Default::default(),
             filter_exact: Default::default(),
+            infer_exit_status_from_annotations: Default::default(),
             comment_defaults,
             comment_start: "//",
             custom_comments: Default::default(),
@@ -187,6 +191,7 @@ impl Config {
             list: false,
             run_only_ignored: false,
             filter_exact: false,
+            infer_exit_status_from_annotations: false,
             comment_defaults,
             comment_start: "//",
             custom_comments: Default::default(),
@@ -513,10 +518,10 @@ pub fn ignore_output_conflict(
 /// Instead of erroring if the stderr/stdout differs from the expected
 /// automatically replace it with the found output (after applying filters).
 pub fn bless_output_files(path: &Path, output: &[u8], _errors: &mut Errors, config: &TestConfig) {
-    if output.is_empty() {
+    let actual = config.normalize(output, &path.extension().unwrap().to_string_lossy());
+    if actual.is_empty() {
         let _ = std::fs::remove_file(path);
     } else {
-        let actual = config.normalize(output, &path.extension().unwrap().to_string_lossy());
         std::fs::write(path, actual).unwrap();
     }
 }

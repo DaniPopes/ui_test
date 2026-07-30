@@ -42,12 +42,8 @@ fn insert_recursive(
             messages.resize_with(line + 1, Vec::new);
         }
         messages[line].push(msg);
-    // All other messages go into the general bin, unless they are specifically of the
-    // "aborting due to X previous errors" variety, as we never want to match those. They
-    // only count the number of errors and provide no useful information about the tests.
-    } else if !(msg.message.starts_with("aborting due to")
-        && msg.message.contains("previous error"))
-    {
+    // Summary diagnostics only count diagnostics already reported above.
+    } else if !is_diagnostic_summary(&msg.message) {
         messages_from_unknown_file_or_line.push(msg);
     }
     for child in diag.children {
@@ -59,6 +55,15 @@ fn insert_recursive(
             line.clone(),
         )
     }
+}
+
+fn is_diagnostic_summary(message: &str) -> bool {
+    static SUMMARY_RE: OnceLock<Regex> = OnceLock::new();
+    SUMMARY_RE
+        .get_or_init(|| {
+            Regex::new(r"aborting due to \d+ previous errors?|\d+ warnings? emitted").unwrap()
+        })
+        .is_match(message)
 }
 
 /// Returns the most expanded line number *in the given file*, if possible.
@@ -174,5 +179,22 @@ impl From<DiagnosticLevel> for Level {
             DiagnosticLevel::Help => Level::Help,
             other => panic!("rustc got a new kind of diagnostic level: {other:?}"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn diagnostic_summaries() {
+        assert!(is_diagnostic_summary("aborting due to 1 previous error"));
+        assert!(is_diagnostic_summary("aborting due to 2 previous errors"));
+        assert!(is_diagnostic_summary("1 warning emitted"));
+        assert!(is_diagnostic_summary("2 warnings emitted"));
+        assert!(is_diagnostic_summary(
+            "aborting due to 1 previous error; 2 warnings emitted"
+        ));
+        assert!(!is_diagnostic_summary("warning emitted by this expression"));
     }
 }

@@ -518,10 +518,10 @@ pub fn ignore_output_conflict(
 /// Instead of erroring if the stderr/stdout differs from the expected
 /// automatically replace it with the found output (after applying filters).
 pub fn bless_output_files(path: &Path, output: &[u8], _errors: &mut Errors, config: &TestConfig) {
-    if output.is_empty() {
+    let actual = config.normalize(output, &path.extension().unwrap().to_string_lossy());
+    if actual.is_empty() {
         let _ = std::fs::remove_file(path);
     } else {
-        let actual = config.normalize(output, &path.extension().unwrap().to_string_lossy());
         std::fs::write(path, actual).unwrap();
     }
 }

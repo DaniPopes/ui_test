@@ -57,6 +57,21 @@ macro_rules! line {
 }
 
 #[test]
+fn bless_removes_normalized_empty_output() {
+    let mut config = config();
+    config.stdout_filter(".+", "");
+    config!(config = "");
+
+    let path = std::env::temp_dir().join(format!(
+        "ui_test_normalized_empty_{}.stdout",
+        std::process::id()
+    ));
+    std::fs::write(&path, "stale").unwrap();
+    bless_output_files(&path, b"output", &mut vec![], &config);
+    assert!(!path.exists());
+}
+
+#[test]
 fn issue_2156() {
     let s = r"
 use std::mem;

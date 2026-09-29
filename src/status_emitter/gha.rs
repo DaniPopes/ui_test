@@ -1,8 +1,8 @@
 use crate::{diagnostics::Message, display, Error, Errors};
 
 use crate::github_actions;
+use crate::spanned::{Span, Spanned};
 use bstr::ByteSlice;
-use spanned::{Span, Spanned};
 use std::{
     fmt::{Debug, Write as _},
     io::Write as _,

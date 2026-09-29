@@ -12,7 +12,7 @@ use std::{
     sync::OnceLock,
 };
 
-fn diag_line(diag: &Diagnostic, file: &Path) -> Option<(spanned::Span, usize)> {
+fn diag_line(diag: &Diagnostic, file: &Path) -> Option<(crate::spanned::Span, usize)> {
     let span = |primary| {
         diag.spans
             .iter()
@@ -27,7 +27,7 @@ fn insert_recursive(
     file: &Path,
     messages: &mut Vec<Vec<Message>>,
     messages_from_unknown_file_or_line: &mut Vec<Message>,
-    line: Option<(spanned::Span, usize)>,
+    line: Option<(crate::spanned::Span, usize)>,
 ) {
     let line = diag_line(&diag, file).or(line);
     let msg = Message {
@@ -67,7 +67,11 @@ fn is_diagnostic_summary(message: &str) -> bool {
 }
 
 /// Returns the most expanded line number *in the given file*, if possible.
-fn span_line(span: &DiagnosticSpan, file: &Path, primary: bool) -> Option<(spanned::Span, usize)> {
+fn span_line(
+    span: &DiagnosticSpan,
+    file: &Path,
+    primary: bool,
+) -> Option<(crate::spanned::Span, usize)> {
     let file_name = PathBuf::from(&span.file_name);
     if let Some(exp) = &span.expansion {
         if let Some(line) = span_line(&exp.span, file, !primary || span.is_primary) {
@@ -83,7 +87,7 @@ fn span_line(span: &DiagnosticSpan, file: &Path, primary: bool) -> Option<(spann
     ((!primary || span.is_primary) && file_name == file).then(|| {
         let span = || {
             Some((
-                spanned::Span {
+                crate::spanned::Span {
                     file: file_name,
                     bytes: usize::try_from(span.byte_start).unwrap()
                         ..usize::try_from(span.byte_end).unwrap(),

@@ -1,7 +1,7 @@
 use super::*;
 use crate::diagnostics::Level;
 use crate::diagnostics::Message;
-use spanned::{Span, Spanned};
+use crate::spanned::{Span, Spanned};
 use std::path::PathBuf;
 
 fn config() -> Config {

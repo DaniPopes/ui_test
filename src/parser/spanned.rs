@@ -1,4 +1,4 @@
-pub(crate) use spanned::*;
+pub(crate) use crate::spanned::*;
 
 /// An optional spanned value.
 #[derive(Debug, Clone)]

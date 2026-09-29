@@ -1,6 +1,7 @@
 //! All the logic needed to run rustfix on a test that failed compilation
 
 use super::Flag;
+use crate::spanned::{Span, Spanned};
 use crate::{
     build_manager::BuildManager,
     display,
@@ -9,7 +10,6 @@ use crate::{
     Error, Errored, TestOk,
 };
 use rustfix::{CodeFix, Filter, Suggestion};
-use spanned::{Span, Spanned};
 use std::{
     collections::HashSet,
     path::{Path, PathBuf},

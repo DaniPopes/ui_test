@@ -63,7 +63,7 @@ pub use cmd::*;
 pub use config::*;
 pub use error::*;
 pub use parser::*;
-pub use spanned;
+pub mod spanned;
 
 /// Run all tests as described in the config argument.
 /// Will additionally process command line arguments.

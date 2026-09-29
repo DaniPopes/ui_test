@@ -6,6 +6,7 @@ use crate::diagnostics::Level;
 use crate::diagnostics::Message;
 use crate::display;
 use crate::parser::Pattern;
+use crate::spanned::Span;
 use crate::test_result::Errored;
 use crate::test_result::TestOk;
 use crate::test_result::TestResult;
@@ -19,7 +20,6 @@ use colored::Colorize;
 use crossbeam_channel::{Sender, TryRecvError};
 #[cfg(feature = "indicatif")]
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
-use spanned::Span;
 use std::borrow::Cow;
 use std::fmt::{Debug, Display};
 use std::io::Write as _;

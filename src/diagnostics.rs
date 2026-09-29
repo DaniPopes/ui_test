@@ -52,7 +52,7 @@ pub struct Message {
     /// Information about where in the file the message was emitted
     pub line: Option<usize>,
     /// Exact span information of the message
-    pub span: Option<spanned::Span>,
+    pub span: Option<crate::spanned::Span>,
     /// Identifier of the message (E0XXX for rustc errors, or lint names)
     pub code: Option<String>,
 }

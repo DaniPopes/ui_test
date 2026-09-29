@@ -1,9 +1,9 @@
 use super::Comments;
+use crate::spanned::{Span, Spanned};
 use crate::{
     parser::{Condition, ErrorMatchKind, Pattern},
     Config, Error,
 };
-use spanned::{Span, Spanned};
 use std::path::PathBuf;
 
 macro_rules! line {

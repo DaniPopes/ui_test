@@ -2,7 +2,7 @@ use ui_test::{
     custom_flags::rustfix::RustfixMode, dependencies::DependencyBuilder, spanned::Spanned, *,
 };
 
-fn main() -> ui_test::color_eyre::Result<()> {
+fn main() -> ui_test::eyre::Result<()> {
     for rustfix in [RustfixMode::MachineApplicable, RustfixMode::Everything] {
         let path = "../../../target";
 

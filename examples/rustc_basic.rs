@@ -3,7 +3,7 @@ use ui_test::{run_tests, Config};
 
 #[cfg(feature = "rustc")]
 #[cfg_attr(test, test)]
-fn main() -> ui_test::color_eyre::Result<()> {
+fn main() -> ui_test::eyre::Result<()> {
     let config = Config::rustc("examples_tests/rustc_basic");
     let abort_check = config.abort_check.clone();
     ctrlc::set_handler(move || abort_check.abort())?;
@@ -15,6 +15,6 @@ fn main() -> ui_test::color_eyre::Result<()> {
 }
 
 #[cfg(not(feature = "rustc"))]
-fn main() -> ui_test::color_eyre::Result<()> {
+fn main() -> ui_test::eyre::Result<()> {
     Ok(())
 }

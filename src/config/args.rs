@@ -1,7 +1,7 @@
 //! Default argument processing when `ui_test` is used
 //! as a test driver.
 
-use color_eyre::eyre::{bail, ensure, Result};
+use eyre::{bail, ensure, Result};
 use std::{borrow::Cow, num::NonZeroUsize};
 
 /// Plain arguments if `ui_test` is used as a binary.

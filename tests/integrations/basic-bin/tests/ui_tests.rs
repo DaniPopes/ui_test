@@ -1,6 +1,6 @@
 use ui_test::{dependencies::DependencyBuilder, *};
 
-fn main() -> ui_test::color_eyre::Result<()> {
+fn main() -> ui_test::eyre::Result<()> {
     let path = "../../../target";
     let mut config = Config {
         output_conflict_handling: if std::env::var_os("BLESS").is_some() {

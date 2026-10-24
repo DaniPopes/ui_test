@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Replaced `color-eyre` with `eyre`: the crate root re-exports `eyre` instead of `color_eyre`, and no longer pulls in `backtrace`, `object`, `gimli` or `color-spantrace`. `color_eyre::install()` has no replacement; `eyre` installs its default handler on first use.
+
 ## [0.30.6] - 2026-05-29
 
 ### Added

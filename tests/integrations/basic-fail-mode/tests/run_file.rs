@@ -1,5 +1,5 @@
 use std::path::{Path, PathBuf};
-use ui_test::color_eyre::{eyre::ensure, Result};
+use ui_test::eyre::{ensure, Result};
 use ui_test::dependencies::DependencyBuilder;
 use ui_test::*;
 

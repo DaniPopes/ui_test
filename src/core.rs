@@ -1,9 +1,9 @@
 //! Basic operations useful for building a testsuite
 
-use color_eyre::eyre::Result;
 use crossbeam_channel::unbounded;
 use crossbeam_channel::Receiver;
 use crossbeam_channel::Sender;
+use eyre::Result;
 use regex::bytes::RegexSet;
 use std::num::NonZeroUsize;
 use std::path::Component;

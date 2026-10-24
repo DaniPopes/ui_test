@@ -2,7 +2,7 @@
 
 use crate::{status_emitter::TestStatus, AbortCheck, Error};
 use bstr::ByteSlice;
-use color_eyre::eyre::Result;
+use eyre::Result;
 
 /// The possible non-failure results a single test can have.
 #[derive(Debug)]

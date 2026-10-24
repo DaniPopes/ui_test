@@ -1,6 +1,6 @@
 use ui_test::{spanned::Spanned, *};
 
-fn main() -> ui_test::color_eyre::Result<()> {
+fn main() -> ui_test::eyre::Result<()> {
     let mut config = Config {
         output_conflict_handling: if std::env::var_os("BLESS").is_some() {
             ui_test::bless_output_files

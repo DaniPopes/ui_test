@@ -6,8 +6,8 @@ use crate::{
     test_result::{TestResult, TestRun},
     Config, Errored,
 };
-use color_eyre::eyre::Result;
 use crossbeam_channel::{bounded, Sender};
+use eyre::Result;
 use std::{
     collections::{hash_map::Entry, HashMap},
     ffi::OsString,

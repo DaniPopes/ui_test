@@ -11,15 +11,15 @@
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
+pub use ::eyre;
 use build_manager::BuildManager;
 use build_manager::NewJob;
-pub use color_eyre;
-use color_eyre::eyre::eyre;
-pub use color_eyre::eyre::Result;
 pub use core::run_and_collect;
 pub use core::CrateType;
 use crossbeam_channel::Sender;
 use crossbeam_channel::TryRecvError;
+use eyre::eyre;
+pub use eyre::Result;
 pub use filter::Match;
 use per_test_config::TestConfig;
 use spanned::Spanned;
@@ -148,7 +148,7 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
 
     let content = Spanned::read_from_file(path).transpose()?;
     let comments = Comments::parse(content.as_deref(), &config)
-        .map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
+        .map_err(|errors| eyre::eyre!("{errors:#?}"))?;
     let config = TestConfig {
         config,
         comments: Arc::new(comments),

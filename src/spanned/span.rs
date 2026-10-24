@@ -453,9 +453,9 @@ impl<T: Debug> From<Spanned<T>> for anyhow::Error {
     }
 }
 
-impl<T: Debug> From<Spanned<T>> for color_eyre::eyre::Error {
+impl<T: Debug> From<Spanned<T>> for eyre::Error {
     #[track_caller]
-    fn from(s: Spanned<T>) -> color_eyre::eyre::Error {
-        color_eyre::eyre::eyre!("{s:?}")
+    fn from(s: Spanned<T>) -> eyre::Error {
+        eyre::eyre!("{s:?}")
     }
 }

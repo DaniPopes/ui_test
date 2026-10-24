@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking:** replaced `color-eyre` with `eyre`. `ui_test::color_eyre` is now `ui_test::eyre`, and `color_eyre::install()` has no replacement: `eyre` installs its default handler on first use, and the coloured panic hook is gone.
+
 ## [0.30.6] - 2026-05-29
 
 ### Added

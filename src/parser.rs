@@ -2,7 +2,7 @@ use crate::{
     custom_flags::Flag, diagnostics::Level, filter::Match, test_result::Errored, Config, Error,
 };
 use bstr::{ByteSlice, Utf8Error};
-use color_eyre::eyre::Result;
+use eyre::Result;
 use regex::bytes::Regex;
 pub use spanned::*;
 use std::{

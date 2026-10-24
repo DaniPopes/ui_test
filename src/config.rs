@@ -11,7 +11,7 @@ use crate::{
     per_test_config::{Comments, Condition, TestConfig},
     CommandBuilder, Error, Errored, Errors,
 };
-use color_eyre::eyre::Result;
+use eyre::Result;
 use regex::bytes::Regex;
 use std::{
     collections::BTreeMap,
@@ -383,7 +383,7 @@ impl Config {
                     &self.program.program,
                 ))
                 .map_err(|err| {
-                    color_eyre::eyre::Report::new(err).wrap_err(format!(
+                    eyre::Report::new(err).wrap_err(format!(
                         "failed to parse rustc version info: {}",
                         self.program.display().to_string().replace('\\', "/")
                     ))

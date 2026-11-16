@@ -2,7 +2,7 @@ use crate::{
     diagnostics::Message,
     parser::{Pattern, Span, Spanned},
 };
-use std::{num::NonZeroUsize, path::PathBuf, process::ExitStatus};
+use std::{num::NonZeroUsize, path::PathBuf, process::ExitStatus, time::Duration};
 
 /// All the ways in which a test can fail.
 #[derive(Debug)]
@@ -87,6 +87,12 @@ pub enum Error {
         kind: String,
         /// The exit status of the command.
         status: ExitStatus,
+    },
+    /// The command ran for longer than [`Config::command_timeout`](crate::Config::command_timeout)
+    /// and was killed.
+    TimedOut {
+        /// The time the command was given.
+        timeout: Duration,
     },
     /// This catches crashes of ui tests and reports them along the failed test.
     Bug(String),

@@ -36,6 +36,12 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
             )
             .line(line(span));
         }
+        Error::TimedOut { timeout } => {
+            github_actions::error(
+                test_path,
+                format!("command{revision} timed out after {}s", timeout.as_secs()),
+            );
+        }
         Error::Command { kind, status } => {
             github_actions::error(test_path, format!("{kind}{revision} failed with {status}"));
         }

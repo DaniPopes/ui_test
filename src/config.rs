@@ -6,6 +6,7 @@ use crate::{
     custom_flags::rustfix::RustfixMode, custom_flags::Flag, filter::Match,
 };
 use crate::{
+    cmd::output_with_timeout,
     diagnostics::{self, Diagnostics},
     parser::CommandParserFunc,
     per_test_config::{Comments, Condition, TestConfig},
@@ -19,6 +20,7 @@ use std::{
     path::{Path, PathBuf},
     process::{Command, Output},
     sync::{atomic::AtomicBool, Arc},
+    time::Duration,
 };
 
 mod args;
@@ -67,6 +69,13 @@ pub struct Config {
     pub diagnostic_extractor: fn(&Path, &[u8]) -> Diagnostics,
     /// Handle to the global abort check.
     pub abort_check: AbortCheck,
+    /// How long a command may run before it is killed and its test fails.
+    /// `None` waits for it forever.
+    ///
+    /// On Unix the command runs in its own process group, which is killed with it, so a
+    /// terminal's Ctrl+C no longer reaches it directly; set [`AbortCheck::abort`] from the
+    /// Ctrl+C handler to kill it. On other platforms only the command itself is killed.
+    pub command_timeout: Option<Duration>,
 }
 
 /// An atomic bool that can be set to `true` to abort all tests.
@@ -115,6 +124,7 @@ impl Config {
             custom_comments: Default::default(),
             diagnostic_extractor: diagnostics::default_diagnostics_extractor,
             abort_check: Default::default(),
+            command_timeout: None,
         }
     }
 
@@ -197,6 +207,7 @@ impl Config {
             custom_comments: Default::default(),
             diagnostic_extractor: diagnostics::rustc::rustc_diagnostics_extractor,
             abort_check: Default::default(),
+            command_timeout: None,
         };
         config
             .custom_comments
@@ -471,12 +482,28 @@ impl Config {
     pub(crate) fn run_command(&self, cmd: &mut Command) -> Result<Output, Errored> {
         self.aborted()?;
 
-        let output = cmd.output().map_err(|err| Errored {
+        let spawn_error = |cmd: &Command, err: std::io::Error| Errored {
             errors: vec![],
             stderr: err.to_string().into_bytes(),
             stdout: format!("could not spawn `{:?}` as a process", cmd.get_program()).into_bytes(),
             command: format!("{cmd:?}"),
-        })?;
+        };
+        let output = match self.command_timeout {
+            None => cmd.output().map_err(|err| spawn_error(cmd, err))?,
+            Some(timeout) => {
+                let (output, timed_out) = output_with_timeout(cmd, timeout, &self.abort_check)
+                    .map_err(|err| spawn_error(cmd, err))?;
+                if timed_out {
+                    return Err(Errored {
+                        errors: vec![Error::TimedOut { timeout }],
+                        stderr: output.stderr,
+                        stdout: output.stdout,
+                        command: format!("{cmd:?}"),
+                    });
+                }
+                output
+            }
+        };
 
         self.aborted()?;
 

@@ -647,6 +647,12 @@ fn print_error(error: &Error, path: &Path) {
             &[&[("expected because of this annotation", span.clone())]],
             path,
         ),
+        Error::TimedOut { timeout } => {
+            print_error_header(format_args!(
+                "command timed out after {}s",
+                timeout.as_secs()
+            ));
+        }
         Error::Command { kind, status } => {
             // `status` prints as `exit status: N`.
             print_error_header(format_args!("{kind} failed with {status}"));

@@ -2,9 +2,11 @@ use crate::config::AbortCheck;
 use crate::display;
 use std::{
     ffi::OsString,
+    fs::File,
     io::{self, Read},
     path::{Path, PathBuf},
     process::{Child, Command, Output, Stdio},
+    sync::{mpsc, Arc, Mutex},
     thread,
     time::{Duration, Instant},
 };
@@ -128,15 +130,17 @@ impl CommandBuilder {
 }
 
 /// Runs `cmd` like [`Command::output`], killing it after `timeout` or once `abort` is set.
+/// `stdin` is the command's input; `None` closes it.
 ///
 /// Returns the output so far and whether the command timed out. On Unix the command runs in its
 /// own process group, and the whole group is killed.
 pub(crate) fn output_with_timeout(
     cmd: &mut Command,
+    stdin: Option<File>,
     timeout: Duration,
     abort: &AbortCheck,
 ) -> io::Result<(Output, bool)> {
-    cmd.stdin(Stdio::null())
+    cmd.stdin(stdin.map_or_else(Stdio::null, Stdio::from))
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     #[cfg(unix)]
@@ -144,8 +148,8 @@ pub(crate) fn output_with_timeout(
     let mut child = cmd.spawn()?;
 
     // Read both pipes while waiting, so a full pipe cannot stall the command.
-    let stdout = read_to_end(child.stdout.take().unwrap());
-    let stderr = read_to_end(child.stderr.take().unwrap());
+    let stdout = Reader::new(child.stdout.take().unwrap());
+    let stderr = Reader::new(child.stderr.take().unwrap());
 
     let start = Instant::now();
     let mut delay = Duration::from_millis(1);
@@ -154,29 +158,54 @@ pub(crate) fn output_with_timeout(
         if let Some(status) = child.try_wait()? {
             break status;
         }
-        if abort.aborted() || start.elapsed() >= timeout {
-            timed_out = !abort.aborted();
+        let aborted = abort.aborted();
+        if aborted || start.elapsed() >= timeout {
+            timed_out = !aborted;
             kill(&mut child);
             break child.wait()?;
         }
         thread::sleep(delay);
-        delay = (delay * 2).min(Duration::from_millis(50));
+        delay = (delay * 2).min(Duration::from_millis(10));
     };
 
     let output = Output {
         status,
-        stdout: stdout.join().unwrap_or_default(),
-        stderr: stderr.join().unwrap_or_default(),
+        stdout: stdout.finish(),
+        stderr: stderr.finish(),
     };
     Ok((output, timed_out))
 }
 
-fn read_to_end(mut pipe: impl Read + Send + 'static) -> thread::JoinHandle<Vec<u8>> {
-    thread::spawn(move || {
-        let mut buf = Vec::new();
-        let _ = pipe.read_to_end(&mut buf);
-        buf
-    })
+/// Reads a pipe on a thread.
+struct Reader {
+    buf: Arc<Mutex<Vec<u8>>>,
+    done: mpsc::Receiver<()>,
+}
+
+impl Reader {
+    /// How long to wait for the pipe to close after the command ends.
+    const GRACE: Duration = Duration::from_secs(1);
+
+    fn new(mut pipe: impl Read + Send + 'static) -> Self {
+        let buf = Arc::new(Mutex::new(Vec::new()));
+        let (done_tx, done) = mpsc::channel();
+        let thread_buf = buf.clone();
+        thread::spawn(move || {
+            let mut chunk = [0; 8192];
+            while let Ok(n @ 1..) = pipe.read(&mut chunk) {
+                thread_buf.lock().unwrap().extend_from_slice(&chunk[..n]);
+            }
+            let _ = done_tx.send(());
+        });
+        Self { buf, done }
+    }
+
+    /// Returns what was read once the pipe closes, or after the grace period if a process that
+    /// left the command's process group still holds the pipe open.
+    fn finish(self) -> Vec<u8> {
+        let _ = self.done.recv_timeout(Self::GRACE);
+        std::mem::take(&mut *self.buf.lock().unwrap())
+    }
 }
 
 /// Kills the child and, on Unix, its process group.
@@ -199,7 +228,7 @@ mod tests {
         let mut cmd = Command::new("sh");
         cmd.args(["-c", script]);
         let (output, timed_out) =
-            output_with_timeout(&mut cmd, timeout, &AbortCheck::default()).unwrap();
+            output_with_timeout(&mut cmd, None, timeout, &AbortCheck::default()).unwrap();
         (output, timed_out, start.elapsed())
     }
 
@@ -217,6 +246,34 @@ mod tests {
         assert!(timed_out);
         assert_eq!(output.stdout, b"before\n");
         assert!(elapsed < Duration::from_secs(30), "{elapsed:?}");
+    }
+
+    #[test]
+    fn input_is_passed_to_the_command() {
+        let path = std::env::temp_dir().join(format!("ui_test_stdin_{}", std::process::id()));
+        std::fs::write(&path, "input").unwrap();
+        let mut cmd = Command::new("cat");
+        let (output, timed_out) = output_with_timeout(
+            &mut cmd,
+            Some(File::open(&path).unwrap()),
+            Duration::from_secs(60),
+            &AbortCheck::default(),
+        )
+        .unwrap();
+        std::fs::remove_file(path).unwrap();
+        assert!(!timed_out);
+        assert_eq!(output.stdout, b"input");
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn escaped_grandchildren_do_not_hold_up_the_output() {
+        // `setsid` leaves the process group, so the kill misses `sleep`, which holds the pipes.
+        let (output, timed_out, elapsed) =
+            run("echo before; setsid sleep 30 &", Duration::from_secs(60));
+        assert!(!timed_out);
+        assert_eq!(output.stdout, b"before\n");
+        assert!(elapsed < Duration::from_secs(10), "{elapsed:?}");
     }
 
     #[test]

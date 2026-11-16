@@ -413,11 +413,11 @@ impl TestConfig {
 
         let mut cmd = self.build_command(build_manager)?;
         let stdin = self.status.path().with_extension(self.extension("stdin"));
-        if stdin.exists() {
-            cmd.stdin(std::fs::File::open(stdin).unwrap());
-        }
+        let stdin = stdin.exists().then(|| std::fs::File::open(stdin).unwrap());
 
-        let output = build_manager.config.run_command(&mut cmd)?;
+        let output = build_manager
+            .config
+            .run_command_with_stdin(&mut cmd, stdin)?;
 
         let output = self.check_test_result(&cmd, output)?;
 

@@ -16,6 +16,7 @@ use eyre::Result;
 use regex::bytes::Regex;
 use std::{
     collections::BTreeMap,
+    fs::File,
     num::NonZeroUsize,
     path::{Path, PathBuf},
     process::{Command, Output},
@@ -72,15 +73,17 @@ pub struct Config {
     /// How long a command may run before it is killed and its test fails.
     /// `None` waits for it forever.
     ///
-    /// On Unix the command runs in its own process group, which is killed with it, so a
-    /// terminal's Ctrl+C no longer reaches it directly; set [`AbortCheck::abort`] from the
+    /// This covers the commands that build and check a test, not the `run` and `rustfix` flags'
+    /// own commands. On Unix the command runs in its own process group, which is killed with it,
+    /// so a terminal's Ctrl+C no longer reaches it directly; set [`AbortCheck::abort`] from the
     /// Ctrl+C handler to kill it. On other platforms only the command itself is killed.
     pub command_timeout: Option<Duration>,
 }
 
 /// An atomic bool that can be set to `true` to abort all tests.
 /// Will not cancel child processes, but if set from a Ctrl+C handler,
-/// the pressing of Ctrl+C will already have cancelled child processes.
+/// the pressing of Ctrl+C will already have cancelled child processes,
+/// unless [`Config::command_timeout`] is set, in which case they are killed when it is set.
 #[derive(Clone, Debug, Default)]
 pub struct AbortCheck(Arc<AtomicBool>);
 
@@ -480,6 +483,15 @@ impl Config {
     }
 
     pub(crate) fn run_command(&self, cmd: &mut Command) -> Result<Output, Errored> {
+        self.run_command_with_stdin(cmd, None)
+    }
+
+    /// Runs `cmd` with `stdin` as its input, or none if it is `None`.
+    pub(crate) fn run_command_with_stdin(
+        &self,
+        cmd: &mut Command,
+        stdin: Option<File>,
+    ) -> Result<Output, Errored> {
         self.aborted()?;
 
         let spawn_error = |cmd: &Command, err: std::io::Error| Errored {
@@ -489,10 +501,16 @@ impl Config {
             command: format!("{cmd:?}"),
         };
         let output = match self.command_timeout {
-            None => cmd.output().map_err(|err| spawn_error(cmd, err))?,
+            None => {
+                if let Some(stdin) = stdin {
+                    cmd.stdin(stdin);
+                }
+                cmd.output().map_err(|err| spawn_error(cmd, err))?
+            }
             Some(timeout) => {
-                let (output, timed_out) = output_with_timeout(cmd, timeout, &self.abort_check)
-                    .map_err(|err| spawn_error(cmd, err))?;
+                let (output, timed_out) =
+                    output_with_timeout(cmd, stdin, timeout, &self.abort_check)
+                        .map_err(|err| spawn_error(cmd, err))?;
                 if timed_out {
                     return Err(Errored {
                         errors: vec![Error::TimedOut { timeout }],

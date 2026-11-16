@@ -74,16 +74,13 @@ pub struct Config {
     /// `None` waits for it forever.
     ///
     /// This covers the commands that build and check a test, not the `run` and `rustfix` flags'
-    /// own commands. On Unix the command runs in its own process group, which is killed with it,
-    /// so a terminal's Ctrl+C no longer reaches it directly; set [`AbortCheck::abort`] from the
-    /// Ctrl+C handler to kill it. On other platforms only the command itself is killed.
+    /// own commands. Only the command is killed, not processes it started.
     pub command_timeout: Option<Duration>,
 }
 
 /// An atomic bool that can be set to `true` to abort all tests.
 /// Will not cancel child processes, but if set from a Ctrl+C handler,
-/// the pressing of Ctrl+C will already have cancelled child processes,
-/// unless [`Config::command_timeout`] is set, in which case they are killed when it is set.
+/// the pressing of Ctrl+C will already have cancelled child processes.
 #[derive(Clone, Debug, Default)]
 pub struct AbortCheck(Arc<AtomicBool>);
 
@@ -508,9 +505,8 @@ impl Config {
                 cmd.output().map_err(|err| spawn_error(cmd, err))?
             }
             Some(timeout) => {
-                let (output, timed_out) =
-                    output_with_timeout(cmd, stdin, timeout, &self.abort_check)
-                        .map_err(|err| spawn_error(cmd, err))?;
+                let (output, timed_out) = output_with_timeout(cmd, stdin, timeout)
+                    .map_err(|err| spawn_error(cmd, err))?;
                 if timed_out {
                     return Err(Errored {
                         errors: vec![Error::TimedOut { timeout }],

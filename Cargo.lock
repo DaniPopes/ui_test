@@ -516,7 +516,6 @@ dependencies = [
  "eyre",
  "indicatif",
  "levenshtein",
- "libc",
  "prettydiff",
  "regex",
  "rustc_version",

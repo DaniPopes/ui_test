@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `Config::command_timeout` kills a command that runs too long and fails its test with `Error::TimedOut`. On Unix the command's process group is killed with it.
+- `Config::command_timeout` kills a command that runs too long and fails its test with `Error::TimedOut`.
 
 ### Fixed
 

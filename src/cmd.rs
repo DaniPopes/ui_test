@@ -1,11 +1,10 @@
-use crate::config::AbortCheck;
 use crate::display;
 use std::{
     ffi::OsString,
     fs::File,
     io::{self, Read},
     path::{Path, PathBuf},
-    process::{Child, Command, Output, Stdio},
+    process::{Command, Output, Stdio},
     sync::{mpsc, Arc, Mutex},
     thread,
     time::{Duration, Instant},
@@ -129,22 +128,19 @@ impl CommandBuilder {
     }
 }
 
-/// Runs `cmd` like [`Command::output`], killing it after `timeout` or once `abort` is set.
+/// Runs `cmd` like [`Command::output`], killing it after `timeout`.
 /// `stdin` is the command's input; `None` closes it.
 ///
-/// Returns the output so far and whether the command timed out. On Unix the command runs in its
-/// own process group, and the whole group is killed.
+/// Returns the output so far and whether the command timed out. Only the command is killed, not
+/// processes it started.
 pub(crate) fn output_with_timeout(
     cmd: &mut Command,
     stdin: Option<File>,
     timeout: Duration,
-    abort: &AbortCheck,
 ) -> io::Result<(Output, bool)> {
     cmd.stdin(stdin.map_or_else(Stdio::null, Stdio::from))
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    #[cfg(unix)]
-    std::os::unix::process::CommandExt::process_group(cmd, 0);
     let mut child = cmd.spawn()?;
 
     // Read both pipes while waiting, so a full pipe cannot stall the command.
@@ -158,10 +154,9 @@ pub(crate) fn output_with_timeout(
         if let Some(status) = child.try_wait()? {
             break status;
         }
-        let aborted = abort.aborted();
-        if aborted || start.elapsed() >= timeout {
-            timed_out = !aborted;
-            kill(&mut child);
+        if start.elapsed() >= timeout {
+            timed_out = true;
+            let _ = child.kill();
             break child.wait()?;
         }
         thread::sleep(delay);
@@ -200,23 +195,12 @@ impl Reader {
         Self { buf, done }
     }
 
-    /// Returns what was read once the pipe closes, or after the grace period if a process that
-    /// left the command's process group still holds the pipe open.
+    /// Returns what was read once the pipe closes, or after the grace period if a process the
+    /// command started still holds the pipe open.
     fn finish(self) -> Vec<u8> {
         let _ = self.done.recv_timeout(Self::GRACE);
         std::mem::take(&mut *self.buf.lock().unwrap())
     }
-}
-
-/// Kills the child and, on Unix, its process group.
-fn kill(child: &mut Child) {
-    #[cfg(unix)]
-    // SAFETY: `killpg` only sends a signal. The child leads a group with the child's pid, set by
-    // `process_group(0)`, and is not yet reaped, so the pid is still its own.
-    unsafe {
-        libc::killpg(child.id() as libc::pid_t, libc::SIGKILL);
-    }
-    let _ = child.kill();
 }
 
 #[cfg(all(test, unix))]
@@ -227,8 +211,7 @@ mod tests {
         let start = Instant::now();
         let mut cmd = Command::new("sh");
         cmd.args(["-c", script]);
-        let (output, timed_out) =
-            output_with_timeout(&mut cmd, None, timeout, &AbortCheck::default()).unwrap();
+        let (output, timed_out) = output_with_timeout(&mut cmd, None, timeout).unwrap();
         (output, timed_out, start.elapsed())
     }
 
@@ -257,7 +240,6 @@ mod tests {
             &mut cmd,
             Some(File::open(&path).unwrap()),
             Duration::from_secs(60),
-            &AbortCheck::default(),
         )
         .unwrap();
         std::fs::remove_file(path).unwrap();
@@ -266,21 +248,19 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
-    fn escaped_grandchildren_do_not_hold_up_the_output() {
-        // `setsid` leaves the process group, so the kill misses `sleep`, which holds the pipes.
-        let (output, timed_out, elapsed) =
-            run("echo before; setsid sleep 30 &", Duration::from_secs(60));
+    fn background_processes_do_not_hold_up_the_output() {
+        // The background `sleep` keeps the pipes open after the command exits.
+        let (output, timed_out, elapsed) = run("echo before; sleep 30 &", Duration::from_secs(60));
         assert!(!timed_out);
         assert_eq!(output.stdout, b"before\n");
         assert!(elapsed < Duration::from_secs(10), "{elapsed:?}");
     }
 
     #[test]
-    fn grandchildren_are_killed_too() {
-        // The background `sleep` keeps the pipes open until the whole group is killed.
-        let (_, timed_out, elapsed) = run("sleep 60 & wait", Duration::from_millis(300));
+    fn a_killed_command_returns_despite_its_children() {
+        // Only the shell is killed; the background `sleep` keeps the pipes open.
+        let (_, timed_out, elapsed) = run("sleep 30 & wait", Duration::from_millis(300));
         assert!(timed_out);
-        assert!(elapsed < Duration::from_secs(30), "{elapsed:?}");
+        assert!(elapsed < Duration::from_secs(10), "{elapsed:?}");
     }
 }

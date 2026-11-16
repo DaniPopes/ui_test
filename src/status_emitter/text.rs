@@ -648,10 +648,7 @@ fn print_error(error: &Error, path: &Path) {
             path,
         ),
         Error::TimedOut { timeout } => {
-            print_error_header(format_args!(
-                "command timed out after {}s",
-                timeout.as_secs()
-            ));
+            print_error_header(format_args!("command timed out after {timeout:?}"));
         }
         Error::Command { kind, status } => {
             // `status` prints as `exit status: N`.

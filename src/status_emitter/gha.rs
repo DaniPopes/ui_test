@@ -39,7 +39,7 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
         Error::TimedOut { timeout } => {
             github_actions::error(
                 test_path,
-                format!("command{revision} timed out after {}s", timeout.as_secs()),
+                format!("command{revision} timed out after {timeout:?}"),
             );
         }
         Error::Command { kind, status } => {
